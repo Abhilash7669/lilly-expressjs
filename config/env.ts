@@ -5,5 +5,7 @@ config({ path: `.env.${process.env.NODE_ENV === "development" ? "local" : "produ
 export const {
     PORT,
     NODE_ENV,
-    SERVER_URL
+    SERVER_URL,
+    DB_URI,
+    JWT_SECRET, JWT_EXPIRES_IN
 } = process.env;
