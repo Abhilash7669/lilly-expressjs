@@ -86,6 +86,29 @@ export const authController = {
       next(error); 
     }
 
-  }
+  },
+
+  verify: async function (req: Request, res: Response) {
+
+    const { token } = await req.body;
+
+    if(!token) {
+      res.json({ success: false, message: "Bad request" });
+      return;
+    }
+
+    // @ts-ignore
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string, iat: number, exp: number };
+
+    const user = await User.findById(decoded?.userId);
+
+    if(!user) {
+      res.json({ success: false, message: "Unauthorized" });
+      return;
+    };
+
+    res.json({ success: true, message: "Authorized" });
+
+  } 
 
 };
