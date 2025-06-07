@@ -39,6 +39,7 @@ export const authController = {
 
       res.status(201).json({
         success: true,
+        title: "",
         message: "Created account successfully!",
         data: {
           token: token,
@@ -76,7 +77,7 @@ export const authController = {
     
       res.status(201).json({
         success: true,
-        message: "Welcome",
+        message: `Welcome ${userExists.userName}`,
         data: {
           token
         }
