@@ -61,7 +61,7 @@ export const authController = {
       const userExists = await User.findOne({ email });
 
       if (!userExists) {
-        res.status(401).json({ success: false, title: "Error", message: "No user found" });
+        res.status(400).json({ success: false, title: "Error", message: "No user found", status_code: 401 });
         return;
       }
 
@@ -71,9 +71,8 @@ export const authController = {
       );
 
       if (!isVerifiedPassword) {
-        res
-          .status(401)
-          .json({ success: false, title: "Error", message: "Invalid Credentials" });
+        res.status(401)
+          .json({ success: false, title: "Error", message: "Invalid Credentials", status_code: 401 });
         return;
       }
 

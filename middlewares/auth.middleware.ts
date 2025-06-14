@@ -22,8 +22,7 @@ export default async function authorize(
 
       if (!token) {
         res
-          .status(401)
-          .json({ success: false, message: "Unauthorized" });
+          .json({ success: false, title: "Unauthorized", message: "Unauthorized personel detected", status_code: 401 });
         return;
       }
       const decoded = jwt.verify(token, JWT_SECRET || "secret") as {
@@ -36,8 +35,7 @@ export default async function authorize(
 
       if (!user) {
         res
-          .status(401)
-          .json({ success: false, message: "Unauthorized" });
+          .json({ success: false, title: "Unauthorized", message: "No user found", status_code: 401 });
         return;
       }
 
@@ -46,6 +44,6 @@ export default async function authorize(
       next();
     }
   } catch (error) {
-    res.status(401).json({ success: false, message: `Unauthorized: ${error}` });
+    res.json({ success: false, message: `Unauthorized: ${error}`, status_code: 401 });
   }
 }
