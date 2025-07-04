@@ -16,6 +16,9 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use("/api/v1/lilly/auth", authRoute);
 app.use("/api/v1/lilly/tasks", tasksRoute);
+app.use("/api/v1/lilly/nuxtjs", (req, res) => {
+    res.json({ title: "YAS!!", message: "Welcome with nuxtjs and expressjs" });
+});
 
 app.listen(PORT, async () => {
     console.log(`Listening in PORT: ${PORT}`);
