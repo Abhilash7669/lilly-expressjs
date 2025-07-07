@@ -53,9 +53,9 @@ export const tasksController = {
 
       res.json(response).status(200);
       return;
-    };
+    }
 
-    // transform data for front-end 
+    // transform data for front-end
 
     // const groupedUserTasks = userTasks.reduce((acc, task) => {
     //   const status = task.status as "todo" | "inProgress" | "done";
@@ -68,7 +68,6 @@ export const tasksController = {
 
     //   return acc;
 
-
     // }, {} as Record<"todo" | "inProgress" | "done", typeof userTasks>);
 
     /* 
@@ -77,52 +76,59 @@ export const tasksController = {
 
     type Columns = {
       status: string;
-      items: TaskItems[]
+      items: TaskItems[];
     };
 
     type TaskItems = {
-        name: string;
-        summary: string;
-        order: number;
-        status: string;
-        priority: string;
-        tags?: Array<string>;
-        subTasks?: Array<{
-          subTask: string;
-          status: boolean;
-        }>;
-        startDate: Date;
-        dueDate: Date
-      }
+      name: string;
+      summary: string;
+      order: number;
+      status: string;
+      priority: string;
+      tags?: Array<string>;
+      subTasks?: Array<{
+        subTask: string;
+        status: boolean;
+      }>;
+      startDate: Date;
+      dueDate: Date;
+    };
 
     const columns: Array<Columns> = [
       {
         status: "todo",
-        items: []
+        items: [],
       },
       {
         status: "inProgress",
-        items: []
+        items: [],
       },
       {
         status: "done",
-        items: []
-      }
+        items: [],
+      },
     ];
 
-    userTasks.forEach(
-      item => {
-        const column = columns.find(c => c.status === item.status);
-        if(column) column.items.push(item);
-      }
-    );
+    userTasks.forEach((item) => {
+      const column = columns.find((c) => c.status === item.status);
+      if (column) column.items.push(item);
+    });
+
+    const orderedColumns = columns.map((item) => {
+      if (item.items.length === 0) return item;
+
+      return {
+        status: item.status,
+        items: item.items.sort((a, b) => a.order - b.order),
+      };
+    });
 
     response = {
       success: true,
       title: "Success",
       message: "Fetched tasks",
       data: {
-        tasks: columns
+        tasks: orderedColumns,
       },
     };
 
@@ -158,7 +164,7 @@ export const tasksController = {
       subTasks: Array<{
         subTask: string;
         status: boolean;
-      }>
+      }>;
     } = await req.body.task;
 
     if (!userTask) {
@@ -180,7 +186,6 @@ export const tasksController = {
     const validTags = userTask.tags && userTask.tags.length > 0;
     const hasSubTasks = userTask.subTasks && userTask.subTasks.length > 0;
 
-
     if (invalidName || invalidDate) {
       response = {
         success: false,
@@ -198,7 +203,6 @@ export const tasksController = {
 
     const invalidStartDate = new Date(userTask.date.startDate) < today;
 
-
     if (invalidStartDate) {
       response = {
         success: false,
@@ -208,7 +212,6 @@ export const tasksController = {
       res.json(response).status(400);
       return;
     }
-
 
     const taskItem = await Tasks.insertOne({
       userId,
@@ -220,9 +223,8 @@ export const tasksController = {
       name: userTask.name,
       startDate: userTask.date.startDate,
       dueDate: userTask.date.dueDate,
-      subTasks: hasSubTasks ? userTask.subTasks : []
+      subTasks: hasSubTasks ? userTask.subTasks : [],
     });
-    
 
     response = {
       success: true,
@@ -231,12 +233,63 @@ export const tasksController = {
       data: {
         task: {
           taskItem,
-          taskId: taskItem._id,
         },
       },
     };
 
     res.json(response).status(200);
+  },
+
+  deleteTask: async function (req: AuthRequest, res: Response) {
+    const userId = req.userId;
+    const taskId = req.params.id;
+
+    let response: BasicResponse | null;
+
+    if (!taskId) {
+      response = {
+        success: false,
+        title: "Error",
+        message: "No id found in params",
+      };
+      res.json(response).status(404);
+      return;
+    }
+    if (!userId) {
+      response = {
+        success: false,
+        title: "Error",
+        message: "Unauthorized user detected",
+      };
+      res.status(401).json(response);
+      return;
+    }
+
+    // find task in database
+
+    const m_task = await Tasks.aggregate([
+      { $match: { userId: new Types.ObjectId(userId) }}
+    ]);
+
+    console.log(m_task, "WAHH");
+    console.log(userId, "user id");
+
+    const existingTask = await Tasks.findOne({
+      userId: userId,
+      _id: taskId
+    });
+
+    if (!existingTask) {
+      response = {
+        success: false,
+        title: "Error",
+        message: "Task item not found",
+      };
+      res.status(404).json(response);
+      return;
+    }
+
+    // console.log(existingTask, "ITEM");
   },
 
   postTasks: async function (req: AuthRequest, res: Response) {
