@@ -3,6 +3,7 @@ import Tasks from "../models/tasks/tasks.model";
 import { BasicResponse } from "../config/basic-res";
 import { AuthRequest } from "../config/interface";
 import { Types } from "mongoose";
+import { BulkWriteResult } from "mongodb";
 
 type TaskStatus = "todo" | "inProgress" | "done";
 type Priority = "high" | "medium" | "low";
@@ -243,6 +244,9 @@ export const tasksController = {
   deleteTask: async function (req: AuthRequest, res: Response) {
     const userId = req.userId;
     const taskId = req.params.id;
+    const status = req.query.status;
+
+    console.log(status, "STATUS");
 
     let response: BasicResponse | null;
 
@@ -265,18 +269,84 @@ export const tasksController = {
       return;
     }
 
-    // find task in database
+    
+    /* 
 
-    const m_task = await Tasks.aggregate([
-      { $match: { userId: new Types.ObjectId(userId) }}
-    ]);
+      - Find and sort desc(captured current highest)
+      - Find and delete (captured data)
 
-    console.log(m_task, "WAHH");
-    console.log(userId, "user id");
+      *** conditional checks
+
+      check if delete order is equal to highest
+        - if yes we have *CONDITION_C*
+      check if delete order is zero
+        - if yes we have *CONDITION_B*
+        else 
+          - we have *CONDITION_A*
+
+    */
+
+    const highestOrderTask = await Tasks.findOne({ userId: { $eq: userId }, status: status }).sort({ order: -1 });
+    const findTask = await Tasks.findOne({ _id: taskId });
+
+
+    // first check if found task is 0
+
+    if(findTask?.order === 0) {
+      console.log("IT IS ZERO!");
+    }
+
+    if(highestOrderTask?.order === findTask?.order) {
+      console.log("THEY ARE THE SAME!")
+    }
+
+    if((findTask?.order !== 0) && highestOrderTask?.order !== findTask?.order) {
+      console.log("THEY are not the same nor zero")
+    }
+
+    // const deletedTask = await Tasks.findOneAndDelete({ _id: taskId });
+
+    // if (!deletedTask) {
+    //   response = {
+    //     success: false,
+    //     title: "Not found",
+    //     message: "Task not found or already deleted",
+    //   };
+    //   return res.status(404).json(response);
+    // }
+    // const m_task = await Tasks.findOne({ userId: { $eq: userId }, status: { $eq: "inProgress"}}).sort({ order: -1 });
+
+    /* 
+      condition A - Not zero or greatest
+      condition B - Zero
+      condition C - greatest
+    */
+    
+
+    // let bulkWriteResult: BulkWriteResult;
+
+    // if()
+
+    // bulkWriteResult = await Tasks.bulkWrite([
+    //   {
+    //     updateMany: {
+    //       filter: {
+    //         userId: { $eq: userId },
+    //         status: { $eq: deletedTask.status },
+    //         order: { $and: [{ $gt: 0 }, {}] },
+    //       },
+    //       update: {
+    //         $
+    //       },
+    //     },
+    //   },
+    // ]);
+
+    // console.log(m_task, "TASK");
 
     const existingTask = await Tasks.findOne({
       userId: userId,
-      _id: taskId
+      _id: taskId,
     });
 
     if (!existingTask) {
@@ -288,6 +358,14 @@ export const tasksController = {
       res.status(404).json(response);
       return;
     }
+
+    response = {
+        success: true,
+        title: "Testing",
+        message: "Testing messsage",
+      };
+      res.status(200).json(response);
+      return;
 
     // console.log(existingTask, "ITEM");
   },
