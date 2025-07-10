@@ -4,6 +4,7 @@ import { BasicResponse } from "../config/basic-res";
 import { AuthRequest } from "../config/interface";
 import { Types } from "mongoose";
 import { BulkWriteResult } from "mongodb";
+import { UpdateWriteOpResult } from "mongoose";
 
 type TaskStatus = "todo" | "inProgress" | "done";
 type Priority = "high" | "medium" | "low";
@@ -246,8 +247,6 @@ export const tasksController = {
     const taskId = req.params.id;
     const status = req.query.status;
 
-    console.log(status, "STATUS");
-
     let response: BasicResponse | null;
 
     if (!taskId) {
@@ -269,105 +268,67 @@ export const tasksController = {
       return;
     }
 
-    
-    /* 
+    const highestOrderTask = await Tasks.findOne({
+      userId: { $eq: userId },
+      status: status,
+    }).sort({ order: -1 });
+    const deletedTask = await Tasks.findOneAndDelete({ _id: taskId });
 
-      - Find and sort desc(captured current highest)
-      - Find and delete (captured data)
+    let updatedOrder: UpdateWriteOpResult | null = null;
 
-      *** conditional checks
-
-      check if delete order is equal to highest
-        - if yes we have *CONDITION_C*
-      check if delete order is zero
-        - if yes we have *CONDITION_B*
-        else 
-          - we have *CONDITION_A*
-
-    */
-
-    const highestOrderTask = await Tasks.findOne({ userId: { $eq: userId }, status: status }).sort({ order: -1 });
-    const findTask = await Tasks.findOne({ _id: taskId });
-
-
-    // first check if found task is 0
-
-    if(findTask?.order === 0) {
-      console.log("IT IS ZERO!");
+    if (!deletedTask || !highestOrderTask) {
+      response = {
+        success: false,
+        title: "Not found",
+        message: "Task not found or already deleted",
+      };
+      res.status(404).json(response);
+      return;
     }
 
-    if(highestOrderTask?.order === findTask?.order) {
-      console.log("THEY ARE THE SAME!")
+    if (deletedTask.order === 0) {
+      // decrement all
+      updatedOrder = await Tasks.updateMany(
+        { $and: [{ status: status }, { order: { $gt: deletedTask.order } }] },
+        { $inc: { order: -1 } }
+      );
     }
 
-    if((findTask?.order !== 0) && highestOrderTask?.order !== findTask?.order) {
-      console.log("THEY are not the same nor zero")
+    if (
+      deletedTask.order > 0 &&
+      deletedTask.order !== highestOrderTask?.order
+    ) {
+      // decrement above the deletedTask
+      updatedOrder = await Tasks.updateMany(
+        { $and: [{ status: status }, { order: { $gt: deletedTask.order } }] },
+        { $inc: { order: -1 } }
+      );
     }
 
-    // const deletedTask = await Tasks.findOneAndDelete({ _id: taskId });
+    if (deletedTask.order === highestOrderTask?.order) {
+      // decrement everything except 0
+      updatedOrder = await Tasks.updateMany(
+        { $and: [{ status: status }, { order: { $gt: 0 } }] },
+        { $inc: { order: -1 } }
+      );
+    }
 
-    // if (!deletedTask) {
-    //   response = {
-    //     success: false,
-    //     title: "Not found",
-    //     message: "Task not found or already deleted",
-    //   };
-    //   return res.status(404).json(response);
-    // }
-    // const m_task = await Tasks.findOne({ userId: { $eq: userId }, status: { $eq: "inProgress"}}).sort({ order: -1 });
-
-    /* 
-      condition A - Not zero or greatest
-      condition B - Zero
-      condition C - greatest
-    */
-    
-
-    // let bulkWriteResult: BulkWriteResult;
-
-    // if()
-
-    // bulkWriteResult = await Tasks.bulkWrite([
-    //   {
-    //     updateMany: {
-    //       filter: {
-    //         userId: { $eq: userId },
-    //         status: { $eq: deletedTask.status },
-    //         order: { $and: [{ $gt: 0 }, {}] },
-    //       },
-    //       update: {
-    //         $
-    //       },
-    //     },
-    //   },
-    // ]);
-
-    // console.log(m_task, "TASK");
-
-    const existingTask = await Tasks.findOne({
-      userId: userId,
-      _id: taskId,
-    });
-
-    if (!existingTask) {
+    if (!updatedOrder) {
       response = {
         success: false,
         title: "Error",
-        message: "Task item not found",
+        message: "Could not delete item",
       };
       res.status(404).json(response);
       return;
     }
 
     response = {
-        success: true,
-        title: "Testing",
-        message: "Testing messsage",
-      };
-      res.status(200).json(response);
-      return;
-
-    // console.log(existingTask, "ITEM");
+      success: true,
+      title: "Success",
+      message: "Your item has been deleted",
+    };
+    res.status(200).json(response);
   },
 
   postTasks: async function (req: AuthRequest, res: Response) {
