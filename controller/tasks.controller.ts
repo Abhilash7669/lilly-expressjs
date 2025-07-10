@@ -296,7 +296,7 @@ export const tasksController = {
 
     if (
       deletedTask.order > 0 &&
-      deletedTask.order !== highestOrderTask?.order
+      deletedTask.order < highestOrderTask?.order
     ) {
       // decrement above the deletedTask
       updatedOrder = await Tasks.updateMany(
