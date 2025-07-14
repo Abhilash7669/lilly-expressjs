@@ -46,7 +46,9 @@ export const authController = {
         message: "Created account successfully!",
         data: {
           token: token,
-          user: newUser,
+          user: {
+            _id: newUser._id
+          },
         },
       });
     } catch (error) {
