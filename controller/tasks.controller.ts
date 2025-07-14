@@ -36,7 +36,7 @@ export const tasksController = {
 
     const userTasks = await Tasks.find({
       userId: userId,
-      isArchived: false
+      isArchived: false,
     });
 
     if (!userTasks) {
@@ -199,6 +199,8 @@ export const tasksController = {
     const userId = req.userId;
     const taskId = req.params.id;
     const status = req.query.status;
+    const deletedAt = req.query.deletedAt;
+    const completedAt = req.query.completedAt;
 
     let response: BasicResponse | null;
 
@@ -225,11 +227,20 @@ export const tasksController = {
       userId: { $eq: userId },
       status: status,
     }).sort({ order: -1 });
-    const deletedTask = await Tasks.findOneAndDelete({ _id: taskId });
+    const archivedTask = await Tasks.findOneAndUpdate(
+      {
+        _id: taskId,
+      },
+      {
+        isArchived: true,
+        deletedAt: deletedAt,
+        completedAt: completedAt,
+      }
+    );
 
     let updatedOrder: UpdateWriteOpResult | null = null;
 
-    if (!deletedTask || !highestOrderTask) {
+    if (!archivedTask || !highestOrderTask) {
       response = {
         success: false,
         title: "Not found",
@@ -239,26 +250,16 @@ export const tasksController = {
       return;
     }
 
-    if (deletedTask.order === 0) {
-      // decrement all
-      updatedOrder = await Tasks.updateMany(
-        { $and: [{ status: status }, { order: { $gt: deletedTask.order } }] },
-        { $inc: { order: -1 } }
-      );
-    }
-
-    if (deletedTask.order > 0 && deletedTask.order < highestOrderTask?.order) {
-      // decrement above the deletedTask
-      updatedOrder = await Tasks.updateMany(
-        { $and: [{ status: status }, { order: { $gt: deletedTask.order } }] },
-        { $inc: { order: -1 } }
-      );
-    }
-
-    if (deletedTask.order === highestOrderTask?.order) {
+    if (archivedTask.order === highestOrderTask?.order) {
       // decrement everything except 0
       updatedOrder = await Tasks.updateMany(
-        { $and: [{ status: status }, { order: { $gt: 0 } }] },
+        { $and: [{ status: status }, { order: { $gt: 0 } }, { isArchived: false }] },
+        { $inc: { order: -1 } }
+      );
+    } else {
+      // decrement everything above the archivedTask
+      updatedOrder = await Tasks.updateMany(
+        { $and: [{ status: status }, { order: { $gt: archivedTask.order } }, { isArchived: false }] },
         { $inc: { order: -1 } }
       );
     }
