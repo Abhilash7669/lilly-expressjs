@@ -6,6 +6,7 @@ import { Types } from "mongoose";
 import { BulkWriteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { RequestBodyTask } from "../types/tasks/tasks.types";
+import { validateUserTask } from "../utils/tasks.utils";
 
 type TaskStatus = "todo" | "inProgress" | "done";
 type Priority = "high" | "medium" | "low";
@@ -166,13 +167,14 @@ export const tasksController = {
       return;
     }
 
-    const invalidTasks = !userTask.status || userTask.status.trim() === "";
-    const invalidName = !userTask.name || userTask.name.trim() === "";
-    const invalidDate = !userTask.date.startDate || !userTask.date.dueDate;
-    const invalidPriorityStatus =
-      !userTask.priority || userTask.priority.trim() === "";
-    const validTags = userTask.tags && userTask.tags.length > 0;
-    const hasSubTasks = userTask.subTasks && userTask.subTasks.length > 0;
+    const {
+      invalidTasks,
+      hasSubTasks,
+      invalidDate,
+      invalidName,
+      invalidPriorityStatus,
+      validTags,
+    } = validateUserTask(userTask);
 
     if (invalidName || invalidDate) {
       response = {
@@ -213,7 +215,8 @@ export const tasksController = {
       dueDate: userTask.date.dueDate,
       subTasks: hasSubTasks ? userTask.subTasks : [],
       completedAt: userTask.completedAt || "",
-      deletedAt: userTask.deletedAt || ""
+      deletedAt: userTask.deletedAt || "",
+      isArchived: userTask.isArchived || false,
     });
 
     response = {
@@ -282,10 +285,7 @@ export const tasksController = {
       );
     }
 
-    if (
-      deletedTask.order > 0 &&
-      deletedTask.order < highestOrderTask?.order
-    ) {
+    if (deletedTask.order > 0 && deletedTask.order < highestOrderTask?.order) {
       // decrement above the deletedTask
       updatedOrder = await Tasks.updateMany(
         { $and: [{ status: status }, { order: { $gt: deletedTask.order } }] },

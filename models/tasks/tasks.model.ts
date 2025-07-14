@@ -61,6 +61,10 @@ const tasksSchema = new Schema(
     },
     deletedAt: {
       type: Date
+    },
+    isArchived: {
+      type: Boolean,
+      required: [true, "Is Archived is required"]
     }
   },
   { timestamps: true }

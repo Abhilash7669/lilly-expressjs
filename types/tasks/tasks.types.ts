@@ -15,4 +15,5 @@ export type RequestBodyTask = {
   }>;
   completedAt: string;
   deletedAt: string;
+  isArchived: boolean;
 };
