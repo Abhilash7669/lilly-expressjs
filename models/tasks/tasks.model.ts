@@ -58,11 +58,13 @@ const tasksSchema = new Schema(
     },
     completedAt: {
       type: Date,
-      required: [true, "completedAt is required"]
+      default: ""
+      // required: [true, "completedAt is required"]
     },
     deletedAt: {
       type: Date,
-      required: [true, "deletedAt is required"]
+      default: ""
+      // required: [true, "deletedAt is required"]
     },
     isArchived: {
       type: Boolean,
