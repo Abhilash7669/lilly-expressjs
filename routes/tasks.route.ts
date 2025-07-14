@@ -12,6 +12,8 @@ tasksRoute.post("/add", authorize, tasksController.postTask);
 
 tasksRoute.post("/add-all", authorize, tasksController.postTasks);
 
+tasksRoute.put("/update/:id", authorize, tasksController.updateTasks);
+
 tasksRoute.delete("/delete/:id", authorize, tasksController.deleteTask);
 
 export default tasksRoute;

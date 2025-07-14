@@ -282,6 +282,12 @@ export const tasksController = {
     res.status(200).json(response);
   },
 
+  updateTasks: async function (req: AuthRequest, res: Response) {
+
+    
+
+  },
+
   postTasks: async function (req: AuthRequest, res: Response) {
     // todo: need to re-think
 
