@@ -89,6 +89,7 @@ export const authController = {
         message: `Welcome ${userExists.userName}`,
         data: {
           token,
+          userId: userExists._id
         },
       });
     } catch (error) {
