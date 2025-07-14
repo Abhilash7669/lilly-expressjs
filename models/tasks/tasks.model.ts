@@ -56,6 +56,12 @@ const tasksSchema = new Schema(
       type: Date,
       required: [true, "Due date is required"],
     },
+    completedAt: {
+      type: Date
+    },
+    deletedAt: {
+      type: Date
+    }
   },
   { timestamps: true }
 );

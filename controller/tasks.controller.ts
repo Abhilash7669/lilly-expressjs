@@ -5,6 +5,7 @@ import { AuthRequest } from "../config/interface";
 import { Types } from "mongoose";
 import { BulkWriteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
+import { RequestBodyTask } from "../types/tasks/tasks.types";
 
 type TaskStatus = "todo" | "inProgress" | "done";
 type Priority = "high" | "medium" | "low";
@@ -152,22 +153,7 @@ export const tasksController = {
       return;
     }
 
-    const userTask: {
-      name: string;
-      status: string;
-      summary: string;
-      order: number;
-      priority: string;
-      tags: Array<string>;
-      date: {
-        startDate: string;
-        dueDate: string;
-      };
-      subTasks: Array<{
-        subTask: string;
-        status: boolean;
-      }>;
-    } = await req.body.task;
+    const userTask: RequestBodyTask = await req.body.task;
 
     if (!userTask) {
       response = {
@@ -226,6 +212,8 @@ export const tasksController = {
       startDate: userTask.date.startDate,
       dueDate: userTask.date.dueDate,
       subTasks: hasSubTasks ? userTask.subTasks : [],
+      completedAt: userTask.completedAt || "",
+      deletedAt: userTask.deletedAt || ""
     });
 
     response = {
