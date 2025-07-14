@@ -3,7 +3,7 @@ import Tasks from "../models/tasks/tasks.model";
 import { BasicResponse } from "../config/basic-res";
 import { AuthRequest } from "../config/interface";
 import { Types } from "mongoose";
-import { BulkWriteResult } from "mongodb";
+import { BulkWriteResult, ObjectId } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { CreateTaskPayload, TaskColumns } from "../types/tasks/tasks.types";
 import { validateUserTask } from "../utils/tasks.utils";
@@ -253,13 +253,25 @@ export const tasksController = {
     if (archivedTask.order === highestOrderTask?.order) {
       // decrement everything except 0
       updatedOrder = await Tasks.updateMany(
-        { $and: [{ status: status }, { order: { $gt: 0 } }, { isArchived: false }] },
+        {
+          $and: [
+            { status: status },
+            { order: { $gt: 0 } },
+            { isArchived: false },
+          ],
+        },
         { $inc: { order: -1 } }
       );
     } else {
       // decrement everything above the archivedTask
       updatedOrder = await Tasks.updateMany(
-        { $and: [{ status: status }, { order: { $gt: archivedTask.order } }, { isArchived: false }] },
+        {
+          $and: [
+            { status: status },
+            { order: { $gt: archivedTask.order } },
+            { isArchived: false },
+          ],
+        },
         { $inc: { order: -1 } }
       );
     }
@@ -283,8 +295,51 @@ export const tasksController = {
   },
 
   updateTasks: async function (req: AuthRequest, res: Response) {
-
+    const authUserId = req.userId;
+    const userId = req.params.id;
     
+    let response: BasicResponse | null = null;
+
+    if (authUserId !== userId) {
+      response = {
+        success: false,
+        title: "Error",
+        message: "Unauthorized",
+      };
+      res.status(401).json(response);
+      return;
+    }
+
+    const tasks: {
+      id: string;
+      order: number;
+      status: string;
+      completedAt: string;
+    }[] = await req.body.updatedTasks;
+
+    const bulkUpdateQuery = tasks.map((task) => ({
+      updateOne: {
+        filter: { _id: task.id, userId: userId },
+        update: {
+          $set: {
+            order: task.order,
+            status: task.status,
+            completedAt: task.completedAt,
+          },
+        },
+      },
+    }));
+
+    const updatedTasks = await Tasks.bulkWrite(bulkUpdateQuery);
+
+
+    response = {
+      success: true,
+      title: "Updated tasks",
+      message: ""
+    }
+
+    res.status(200).json(response);
 
   },
 
