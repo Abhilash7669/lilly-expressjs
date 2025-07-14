@@ -5,7 +5,7 @@ import { AuthRequest } from "../config/interface";
 import { Types } from "mongoose";
 import { BulkWriteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
-import { RequestBodyTask } from "../types/tasks/tasks.types";
+import { CreateTaskPayload, TaskColumns } from "../types/tasks/tasks.types";
 import { validateUserTask } from "../utils/tasks.utils";
 
 type TaskStatus = "todo" | "inProgress" | "done";
@@ -36,6 +36,7 @@ export const tasksController = {
 
     const userTasks = await Tasks.find({
       userId: userId,
+      isArchived: false
     });
 
     if (!userTasks) {
@@ -59,46 +60,7 @@ export const tasksController = {
       return;
     }
 
-    // transform data for front-end
-
-    // const groupedUserTasks = userTasks.reduce((acc, task) => {
-    //   const status = task.status as "todo" | "inProgress" | "done";
-
-    //   if(!acc[status]) {
-    //     acc[status] = [];
-    //   };
-
-    //   acc[status].push(task);
-
-    //   return acc;
-
-    // }, {} as Record<"todo" | "inProgress" | "done", typeof userTasks>);
-
-    /* 
-      userId
-    */
-
-    type Columns = {
-      status: string;
-      items: TaskItems[];
-    };
-
-    type TaskItems = {
-      name: string;
-      summary: string;
-      order: number;
-      status: string;
-      priority: string;
-      tags?: Array<string>;
-      subTasks?: Array<{
-        subTask: string;
-        status: boolean;
-      }>;
-      startDate: Date;
-      dueDate: Date;
-    };
-
-    const columns: Array<Columns> = [
+    const columns: Array<TaskColumns> = [
       {
         status: "todo",
         items: [],
@@ -154,7 +116,7 @@ export const tasksController = {
       return;
     }
 
-    const userTask: RequestBodyTask = await req.body.task;
+    const userTask: CreateTaskPayload = await req.body.task;
 
     if (!userTask) {
       response = {

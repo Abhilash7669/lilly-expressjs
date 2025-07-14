@@ -1,6 +1,6 @@
-import { RequestBodyTask } from "../types/tasks/tasks.types";
+import { CreateTaskPayload } from "../types/tasks/tasks.types";
 
-export function validateUserTask(userTask: RequestBodyTask) {
+export function validateUserTask(userTask: CreateTaskPayload) {
   return {
     invalidTasks: !userTask.status || userTask.status.trim() === "",
     invalidName: !userTask.name || userTask.name.trim() === "",
