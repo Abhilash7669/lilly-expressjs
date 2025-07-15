@@ -195,6 +195,51 @@ export const tasksController = {
     res.json(response).status(200);
   },
 
+  editTask: async function (req: AuthRequest, res: Response) {
+    const userId = req.userId;
+    const taskId = req.params.id;
+
+    let response: BasicResponse | null = null;
+
+    if (!userId) {
+      response = {
+        success: false,
+        title: "Error",
+        message: "Unauthorized",
+      };
+      res.json(response).status(401);
+      return;
+    }
+
+    const userTask: CreateTaskPayload = await req.body.task;
+
+    if (!userTask) {
+      response = {
+        success: false,
+        title: "Error",
+        message: "No task found",
+      };
+
+      res.json(response).status(404);
+      return;
+    };
+
+    const taskItem = await Tasks.findOneAndUpdate({ _id: taskId }, {...userTask, _id: taskId, isArchived: false });
+
+    response = {
+      success: true,
+      title: "Success",
+      message: "Edited Successfully",
+      data: {
+        task: {
+          taskItem,
+        },
+      },
+    };
+
+    res.json(response).status(200);
+  },
+
   deleteTask: async function (req: AuthRequest, res: Response) {
     const userId = req.userId;
     const taskId = req.params.id;
@@ -237,7 +282,7 @@ export const tasksController = {
         completedAt: completedAt,
       }
     );
-
+    console.log(archivedTask, "HERE IS ORDER");
     let updatedOrder: UpdateWriteOpResult | null = null;
 
     if (!archivedTask || !highestOrderTask) {
@@ -297,7 +342,7 @@ export const tasksController = {
   updateTasks: async function (req: AuthRequest, res: Response) {
     const authUserId = req.userId;
     const userId = req.params.id;
-    
+
     let response: BasicResponse | null = null;
 
     if (authUserId !== userId) {
@@ -332,15 +377,13 @@ export const tasksController = {
 
     const updatedTasks = await Tasks.bulkWrite(bulkUpdateQuery);
 
-
     response = {
       success: true,
       title: "Updated tasks",
-      message: ""
-    }
+      message: "",
+    };
 
     res.status(200).json(response);
-
   },
 
   postTasks: async function (req: AuthRequest, res: Response) {
